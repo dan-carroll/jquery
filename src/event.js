@@ -1,19 +1,15 @@
-define( [
-	"./core",
-	"./var/document",
-	"./var/documentElement",
-	"./var/rnothtmlwhite",
-	"./var/rcheckableType",
-	"./var/slice",
-	"./data/var/dataPriv",
-	"./core/nodeName",
+import jQuery from "./core.js";
+import document from "./var/document.js";
+import documentElement from "./var/documentElement.js";
+import rnothtmlwhite from "./var/rnothtmlwhite.js";
+import rcheckableType from "./var/rcheckableType.js";
+import slice from "./var/slice.js";
+import acceptData from "./data/var/acceptData.js";
+import dataPriv from "./data/var/dataPriv.js";
+import nodeName from "./core/nodeName.js";
 
-	"./core/init",
-	"./selector"
-], function( jQuery, document, documentElement, rnothtmlwhite,
-	rcheckableType, slice, dataPriv, nodeName ) {
-
-"use strict";
+import "./core/init.js";
+import "./selector.js";
 
 var
 	rkeyEvent = /^key/,
@@ -105,8 +101,6 @@ function on( elem, types, selector, data, fn, one ) {
  */
 jQuery.event = {
 
-	global: {},
-
 	add: function( elem, types, handler, data, selector ) {
 
 		var handleObjIn, eventHandle, tmp,
@@ -114,8 +108,8 @@ jQuery.event = {
 			special, handlers, type, namespaces, origType,
 			elemData = dataPriv.get( elem );
 
-		// Don't attach events to noData or text/comment nodes (but allow plain objects)
-		if ( !elemData ) {
+		// Only attach events to objects that accept data
+		if ( !acceptData( elem ) ) {
 			return;
 		}
 
@@ -139,7 +133,7 @@ jQuery.event = {
 
 		// Init the element's event structure and main handler, if this is the first
 		if ( !( events = elemData.events ) ) {
-			events = elemData.events = {};
+			events = elemData.events = Object.create( null );
 		}
 		if ( !( eventHandle = elemData.handle ) ) {
 			eventHandle = elemData.handle = function( e ) {
@@ -214,9 +208,6 @@ jQuery.event = {
 			} else {
 				handlers.push( handleObj );
 			}
-
-			// Keep track of which events have ever been used, for event optimization
-			jQuery.event.global[ type ] = true;
 		}
 
 	},
@@ -297,12 +288,15 @@ jQuery.event = {
 
 	dispatch: function( nativeEvent ) {
 
-		// Make a writable jQuery.Event from the native event object
-		var event = jQuery.event.fix( nativeEvent );
-
 		var i, j, ret, matched, handleObj, handlerQueue,
 			args = new Array( arguments.length ),
-			handlers = ( dataPriv.get( this, "events" ) || {} )[ event.type ] || [],
+
+			// Make a writable jQuery.Event from the native event object
+			event = jQuery.event.fix( nativeEvent ),
+
+			handlers = (
+					dataPriv.get( this, "events" ) || Object.create( null )
+				)[ event.type ] || [],
 			special = jQuery.event.special[ event.type ] || {};
 
 		// Use the fix-ed jQuery.Event rather than the (read-only) native event
@@ -857,5 +851,4 @@ jQuery.fn.extend( {
 	}
 } );
 
-return jQuery;
-} );
+export default jQuery;

@@ -488,29 +488,6 @@ QUnit.test( "attr(non-ASCII)", function( assert ) {
 	assert.equal( $div.attr( "AØC" ), "alpha", ".attr() exclusively lowercases characters in the range A-Z (gh-2730)" );
 } );
 
-QUnit.test( "attr - extending the boolean attrHandle", function( assert ) {
-	assert.expect( 1 );
-	var called = false,
-		origAttrHandleHadChecked = "checked" in jQuery.expr.attrHandle,
-		origAttrHandleChecked = jQuery.expr.attrHandle.checked,
-		_handle = origAttrHandleChecked || $.noop;
-	jQuery.expr.attrHandle.checked = function() {
-		called = true;
-		_handle.apply( this, arguments );
-	};
-	jQuery( "#qunit-fixture input" ).attr( "checked" );
-	called = false;
-	jQuery( "#qunit-fixture input" ).attr( "checked" );
-	assert.ok( called, "The boolean attrHandle does not drop custom attrHandles" );
-
-	if ( origAttrHandleHadChecked ) {
-		jQuery.expr.attrHandle.checked = origAttrHandleChecked;
-	} else {
-		delete jQuery.expr.attrHandle.checked;
-	}
-
-} );
-
 QUnit.test( "attr(String, Object) - Loaded via XML document", function( assert ) {
 	assert.expect( 2 );
 	var xml = createDashboardXML(),
@@ -1219,6 +1196,57 @@ QUnit.test( "select.val(space characters) (gh-2978)", function( assert ) {
 	} );
 } );
 
+QUnit.test( "radio.val(space characters)", function( assert ) {
+	assert.expect( 42 );
+
+	var radio = jQuery( "<input type='radio'/>" ).appendTo( "#qunit-fixture" ),
+		spaces = {
+			"\\t": {
+				html: "&#09;",
+				val: "\t"
+			},
+			"\\n": {
+				html: "&#10;",
+				val: "\n"
+			},
+			"\\r": {
+				html: "&#13;",
+				val: "\r"
+			},
+			"\\f": "\f",
+			"space": " ",
+			"\\u00a0": "\u00a0",
+			"\\u1680": "\u1680"
+		};
+
+	jQuery.each( spaces, function( key, obj ) {
+		var val = obj.val || obj;
+
+		radio.val( "attr" + val );
+		assert.equal( radio.val(), "attr" + val, "Value ending with space character (" + key + ") returned (set via val())" );
+
+		radio.val( "at" + val + "tr" );
+		assert.equal( radio.val(), "at" + val + "tr", "Value with space character (" + key + ") in the middle returned (set via val())" );
+
+		radio.val( val + "attr" );
+		assert.equal( radio.val(), val + "attr", "Value starting with space character (" + key + ") returned (set via val())" );
+	} );
+
+	jQuery.each( spaces, function( key, obj ) {
+		var val = obj.val || obj,
+			htmlVal = obj.html || obj;
+
+		radio = jQuery( "<input type='radio' value='attr" + htmlVal + "'/>" ).appendTo( "#qunit-fixture" );
+		assert.equal( radio.val(), "attr" + val, "Value ending with space character (" + key + ") returned (set via HTML)" );
+
+		radio = jQuery( "<input type='radio' value='at" + htmlVal + "tr'/>" ).appendTo( "#qunit-fixture" );
+		assert.equal( radio.val(), "at" + val + "tr", "Value with space character (" + key + ") in the middle returned (set via HTML)" );
+
+		radio = jQuery( "<input type='radio' value='" + htmlVal + "attr'/>" ).appendTo( "#qunit-fixture" );
+		assert.equal( radio.val(), val + "attr", "Value starting with space character (" + key + ") returned (set via HTML)" );
+	} );
+} );
+
 var testAddClass = function( valueObj, assert ) {
 	assert.expect( 9 );
 
@@ -1278,7 +1306,7 @@ QUnit.test( "addClass(Array)", function( assert ) {
 } );
 
 QUnit.test( "addClass(Function) with incoming value", function( assert ) {
-	assert.expect( 57 );
+	assert.expect( 59 );
 	var pass, i,
 		div = jQuery( "#qunit-fixture div" ),
 		old = div.map( function() {
@@ -1353,7 +1381,7 @@ QUnit.test( "removeClass(Array) - simple", function( assert ) {
 } );
 
 QUnit.test( "removeClass(Function) with incoming value", function( assert ) {
-	assert.expect( 57 );
+	assert.expect( 59 );
 
 	var $divs = jQuery( "#qunit-fixture div" ).addClass( "test" ), old = $divs.map( function() {
 		return jQuery( this ).attr( "class" );
@@ -1434,10 +1462,6 @@ var testToggleClass = function( valueObj, assert ) {
 	e.toggleClass( false );
 	e.toggleClass();
 	assert.ok( e.is( ".testD.testE" ), "Assert class present (restored from data)" );
-
-	// Cleanup
-	e.removeClass( "testD" );
-	assert.expectJqData( this, e[ 0 ], "__className__" );
 };
 
 QUnit.test( "toggleClass(String|boolean|undefined[, boolean])", function( assert ) {

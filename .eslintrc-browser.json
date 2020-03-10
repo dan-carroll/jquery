@@ -15,12 +15,11 @@
 	"env": {},
 
 	"globals": {
-		"window": true,
-		"define": true,
-		"module": true
+		"window": true
 	},
 
 	"rules": {
+		"one-var": ["error", {"var": "always"}],
 		"strict": ["error", "function"]
 	}
 }

@@ -45,7 +45,7 @@ this.q = function() {
 /**
  * Asserts that a select matches the given IDs
  * @param {String} message - Assertion name
- * @param {String} selector - Sizzle selector
+ * @param {String} selector - jQuery selector
  * @param {String} expectedIds - Array of ids to construct what is expected
  * @param {(String|Node)=document} context - Selector context
  * @example match("Check for something", "p", ["foo", "bar"]);
@@ -60,7 +60,7 @@ function match( message, selector, expectedIds, context, assert ) {
  * Asserts that a select matches the given IDs.
  * The select is not bound by a context.
  * @param {String} message - Assertion name
- * @param {String} selector - Sizzle selector
+ * @param {String} selector - jQuery selector
  * @param {String} expectedIds - Array of ids to construct what is expected
  * @example t("Check for something", "p", ["foo", "bar"]);
  */
@@ -72,7 +72,7 @@ QUnit.assert.t = function( message, selector, expectedIds ) {
  * Asserts that a select matches the given IDs.
  * The select is performed within the `#qunit-fixture` context.
  * @param {String} message - Assertion name
- * @param {String} selector - Sizzle selector
+ * @param {String} selector - jQuery selector
  * @param {String} expectedIds - Array of ids to construct what is expected
  * @example selectInFixture("Check for something", "p", ["foo", "bar"]);
  */
@@ -254,12 +254,24 @@ this.testIframe = function( title, fileName, func, wrapper ) {
 			args.unshift( assert );
 
 			setTimeout( function() {
+				var result;
+
 				this.iframeCallback = undefined;
 
-				func.apply( this, args );
-				func = function() {};
-				$iframe.remove();
-				done();
+				result = func.apply( this, args );
+
+				function finish() {
+					func = function() {};
+					$iframe.remove();
+					done();
+				}
+
+				// Wait for promises returned by `func`.
+				if ( result && result.then ) {
+					result.then( finish );
+				} else {
+					finish();
+				}
 			} );
 		};
 
@@ -280,6 +292,17 @@ if ( !window.__karma__ ) {
 QUnit.isSwarm = ( QUnit.urlParams.swarmURL + "" ).indexOf( "http" ) === 0;
 QUnit.basicTests = ( QUnit.urlParams.module + "" ) === "basic";
 
+// Says whether jQuery positional selector extensions are supported.
+// A full selector engine is required to support them as they need to be evaluated
+// left-to-right. Remove that property when support for positional selectors is dropped.
+QUnit.jQuerySelectorsPos = true;
+
+// Says whether jQuery selector extensions are supported. Change that to `false`
+// if your custom jQuery versions relies more on native qSA.
+// This doesn't include support for positional selectors (see above).
+// TODO do we want to keep this or just assume support for jQuery extensions?
+QUnit.jQuerySelectors = true;
+
 // Support: IE 11+
 // A variable to make it easier to skip specific tests in IE, mostly
 // testing integrations with newer Web features not supported by it.
@@ -288,14 +311,17 @@ QUnit.testUnlessIE = QUnit.isIE ? QUnit.skip : QUnit.test;
 
 this.loadTests = function() {
 
-	// Directly load tests that need synchronous evaluation
-	if ( !QUnit.urlParams.amd || document.readyState === "loading" ) {
+	// QUnit.config is populated from QUnit.urlParams but only at the beginning
+	// of the test run. We need to read both.
+	var esmodules = QUnit.config.esmodules || QUnit.urlParams.esmodules,
+		amd = QUnit.config.amd || QUnit.urlParams.amd;
+
+	// Directly load tests that need evaluation before DOMContentLoaded.
+	if ( ( !esmodules && !amd ) || document.readyState === "loading" ) {
 		document.write( "<script src='" + parentUrl + "test/unit/ready.js'><\x2Fscript>" );
 	} else {
 		QUnit.module( "ready", function() {
-			QUnit.test( "jQuery ready", function( assert ) {
-				assert.ok( false, "Test should be initialized before DOM ready" );
-			} );
+			QUnit.skip( "jQuery ready tests skipped in async mode", function() {} );
 		} );
 	}
 
@@ -347,7 +373,11 @@ this.loadTests = function() {
 				}
 
 			} else {
-				QUnit.load();
+				if ( window.__karma__ && window.__karma__.start ) {
+					window.__karma__.start();
+				} else {
+					QUnit.load();
+				}
 
 				/**
 				 * Run in noConflict mode

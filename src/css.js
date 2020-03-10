@@ -1,25 +1,22 @@
-define( [
-	"./core",
-	"./core/access",
-	"./var/rcssNum",
-	"./var/isIE",
-	"./css/var/rnumnonpx",
-	"./css/var/cssExpand",
-	"./css/isAutoPx",
-	"./css/cssCamelCase",
-	"./css/var/getStyles",
-	"./css/var/swap",
-	"./css/curCSS",
-	"./css/adjustCSS",
-	"./css/finalPropName",
+import jQuery from "./core.js";
+import access from "./core/access.js";
+import nodeName from "./core/nodeName.js";
+import rcssNum from "./var/rcssNum.js";
+import isIE from "./var/isIE.js";
+import rnumnonpx from "./css/var/rnumnonpx.js";
+import cssExpand from "./css/var/cssExpand.js";
+import isAutoPx from "./css/isAutoPx.js";
+import cssCamelCase from "./css/cssCamelCase.js";
+import getStyles from "./css/var/getStyles.js";
+import swap from "./css/var/swap.js";
+import curCSS from "./css/curCSS.js";
+import adjustCSS from "./css/adjustCSS.js";
+import support from "./css/support.js";
+import finalPropName from "./css/finalPropName.js";
 
-	"./core/init",
-	"./core/ready",
-	"./selector" // contains
-], function( jQuery, access, rcssNum, isIE, rnumnonpx, cssExpand, isAutoPx,
-	cssCamelCase, getStyles, swap, curCSS, adjustCSS, finalPropName ) {
-
-"use strict";
+import "./core/init.js";
+import "./core/ready.js";
+import "./selector.js"; // contains
 
 var
 
@@ -138,14 +135,21 @@ function getWidthOrHeight( elem, dimension, extra ) {
 	}
 
 
-	// Fall back to offsetWidth/offsetHeight when value is "auto"
-	// This happens for inline elements with no explicit setting (gh-3571)
-	//
 	// Support: IE 9 - 11+
-	// Also use offsetWidth/offsetHeight for when box sizing is unreliable
-	// We use getClientRects() to check for hidden/disconnected.
-	// In those cases, the computed value can be trusted to be border-box
-	if ( ( isIE && isBorderBox || val === "auto" ) &&
+	// Use offsetWidth/offsetHeight for when box sizing is unreliable.
+	// In those cases, the computed value can be trusted to be border-box.
+	if ( ( isIE && isBorderBox ||
+
+		// Support: IE 10 - 11+, Edge 15 - 18+
+		// IE/Edge misreport `getComputedStyle` of table rows with width/height
+		// set in CSS while `offset*` properties report correct values.
+		!support.reliableTrDimensions() && nodeName( elem, "tr" ) ||
+
+		// Fall back to offsetWidth/offsetHeight when value is "auto"
+		// This happens for inline elements with no explicit setting (gh-3571)
+		val === "auto" ) &&
+
+		// Make sure the element is visible & connected
 		elem.getClientRects().length ) {
 
 		isBorderBox = jQuery.css( elem, "boxSizing", false, styles ) === "border-box";
@@ -181,18 +185,7 @@ jQuery.extend( {
 
 	// Add in style property hooks for overriding the default
 	// behavior of getting and setting a style property
-	cssHooks: {
-		opacity: {
-			get: function( elem, computed ) {
-				if ( computed ) {
-
-					// We should always get a number back from opacity
-					var ret = curCSS( elem, "opacity" );
-					return ret === "" ? "1" : ret;
-				}
-			}
-		}
-	},
+	cssHooks: {},
 
 	// Get and set the style property on a DOM Node
 	style: function( elem, name, value, extra ) {
@@ -417,5 +410,4 @@ jQuery.fn.extend( {
 	}
 } );
 
-return jQuery;
-} );
+export default jQuery;

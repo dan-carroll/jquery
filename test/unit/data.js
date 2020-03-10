@@ -132,11 +132,6 @@ QUnit.test( "jQuery.data(div)", function( assert ) {
 	var div = document.createElement( "div" );
 
 	dataTests( div, assert );
-
-	// We stored one key in the private data
-	// assert that nothing else was put in there, and that that
-	// one stayed there.
-	assert.expectJqData( this, div, "foo" );
 } );
 
 QUnit.test( "jQuery.data({})", function( assert ) {
@@ -159,8 +154,6 @@ QUnit.test( "jQuery.data(document)", function( assert ) {
 	assert.expect( 25 );
 
 	dataTests( document, assert );
-
-	assert.expectJqData( this, document, "foo" );
 } );
 
 QUnit.test( "jQuery.data(<embed>)", function( assert ) {
@@ -1004,4 +997,19 @@ QUnit.test( ".data(prop) does not create expando", function( assert ) {
 			assert.ok( false, "Expando was created on access" );
 		}
 	}
+} );
+
+QUnit.test( "keys matching Object.prototype properties  (gh-3256)", function( assert ) {
+	assert.expect( 2 );
+
+	var div = jQuery( "<div/>" );
+
+	assert.strictEqual( div.data( "hasOwnProperty" ), undefined,
+		"hasOwnProperty not matched (before forced data creation)" );
+
+	// Force the creation of a data object for this element.
+	div.data( { foo: "bar" } );
+
+	assert.strictEqual( div.data( "hasOwnProperty" ), undefined,
+		"hasOwnProperty not matched (after forced data creation)" );
 } );

@@ -1317,7 +1317,7 @@ QUnit.test( "Delegated events with malformed selectors (gh-3071)", function( ass
 		jQuery( "#foo" ).on( "click", "nonexistent:not", function() {} );
 	}, "short-circuitable malformed selector throws on attach" );
 
-	jQuery( "#foo > :first-child" ).click();
+	jQuery( "#foo > :first-child" ).trigger( "click" );
 	assert.ok( true, "malformed selector does not throw on event" );
 } );
 
@@ -1796,8 +1796,51 @@ QUnit.test( "jQuery.off using dispatched jQuery.Event", function( assert ) {
 		.remove();
 } );
 
+QUnit.test( "events with type matching an Object.prototype property (gh-3256)", function( assert ) {
+	assert.expect( 1 );
+
+	var elem = jQuery( "<div/>" ),
+		eventFired = false;
+
+	elem.appendTo( "#qunit-fixture" );
+
+	try {
+		elem
+			.one( "hasOwnProperty", function() {
+				eventFired = true;
+			} )
+			.trigger( "hasOwnProperty" );
+	} finally {
+		assert.strictEqual( eventFired, true, "trigger fired without crashing" );
+	}
+} );
+
+QUnit.test( "events with type matching an Object.prototype property, cloned element (gh-3256)",
+	function( assert ) {
+	assert.expect( 1 );
+
+	var elem = jQuery( "<div/>" ),
+		eventFired = false;
+
+	elem.appendTo( "#qunit-fixture" );
+
+	try {
+		// Make sure the original element has some event data.
+		elem.on( "click", function() {} );
+
+		elem
+			.clone( true )
+			.one( "hasOwnProperty", function() {
+				eventFired = true;
+			} )
+			.trigger( "hasOwnProperty" );
+	} finally {
+		assert.strictEqual( eventFired, true, "trigger fired without crashing" );
+	}
+} );
+
 // selector-native does not support scope-fixing in delegation
-QUnit[ jQuery.find.compile ? "test" : "skip" ]( "delegated event with delegateTarget-relative selector", function( assert ) {
+QUnit[ QUnit.jQuerySelectors ? "test" : "skip" ]( "delegated event with delegateTarget-relative selector", function( assert ) {
 	assert.expect( 3 );
 	var markup = jQuery( "<div><ul><li><a id=\"a0\"></a><ul id=\"ul0\"><li class=test><a id=\"a0_0\"></a></li><li><a id=\"a0_1\"></a></li></ul></li></ul></div>" ).appendTo( "#qunit-fixture" );
 
@@ -1815,18 +1858,23 @@ QUnit[ jQuery.find.compile ? "test" : "skip" ]( "delegated event with delegateTa
 		.find( "#a0_0" ).trigger( "click" ).end()
 		.off( "click" );
 
-	// Positional selector (#11315)
-	markup.find( "ul" ).eq( 0 )
-		.on( "click", ">li>a", function() {
-			assert.ok( this.id === "a0", "child li was clicked" );
-		} )
-		.find( "#ul0" )
-			.on( "click", "li:first>a", function() {
-				assert.ok( this.id === "a0_0", "first li under #u10 was clicked" );
+	if ( QUnit.jQuerySelectorsPos ) {
+		// Positional selector (#11315)
+		markup.find( "ul" ).eq( 0 )
+			.on( "click", ">li>a", function() {
+				assert.ok( this.id === "a0", "child li was clicked" );
 			} )
-		.end()
-		.find( "a" ).trigger( "click" ).end()
-		.find( "#ul0" ).off();
+			.find( "#ul0" )
+				.on( "click", "li:first>a", function() {
+					assert.ok( this.id === "a0_0", "first li under #u10 was clicked" );
+				} )
+			.end()
+			.find( "a" ).trigger( "click" ).end()
+			.find( "#ul0" ).off();
+	} else {
+		assert.ok( "skip", "Positional selectors are not supported" );
+		assert.ok( "skip", "Positional selectors are not supported" );
+	}
 
 	markup.remove();
 } );
@@ -2490,7 +2538,7 @@ QUnit.test( "drag/drop events copy mouse-related event properties (gh-1925, gh-2
 
 	fireNative( $fixture[ 0 ], "drop" );
 
-	$fixture.unbind( "dragmove drop" ).remove();
+	$fixture.off( "dragmove drop" ).remove();
 } );
 
 QUnit.test( "focusin using non-element targets", function( assert ) {
@@ -2543,7 +2591,8 @@ testIframe(
 	function( assert, jQuery, window, document, isOk ) {
 		assert.expect( 1 );
 		assert.ok( isOk, "$.when( $.ready ) works" );
-	}
+	},
+	jQuery.when ? QUnit.test : QUnit.skip
 );
 
 // need PHP here to make the incepted IFRAME hang
@@ -2804,6 +2853,15 @@ QUnit.test( "preventDefault() on focusin does not throw exception", function( as
 		} );
 		input[ 0 ].click();
 	}, QUnit.config.testTimeout / 4 || 1000 );
+} );
+
+QUnit.test( ".on('focus', fn) on a text node doesn't throw", function( assert ) {
+	assert.expect( 1 );
+
+	jQuery( document.createTextNode( "text" ) )
+		.on( "focus", function() {} );
+
+	assert.ok( true, "No crash" );
 } );
 
 QUnit.test( "Donor event interference", function( assert ) {

@@ -1,11 +1,8 @@
-define( [
-	"../core",
-	"../event"
-], function( jQuery ) {
+import jQuery from "../core.js";
 
-"use strict";
+import "../ajax.js";
+import "../event.js";
 
-// Attach a bunch of functions for handling common AJAX events
 jQuery.each( [
 	"ajaxStart",
 	"ajaxStop",
@@ -17,6 +14,4 @@ jQuery.each( [
 	jQuery.fn[ type ] = function( fn ) {
 		return this.on( type, fn );
 	};
-} );
-
 } );

@@ -244,7 +244,7 @@ function testAppend( valueObj, assert ) {
 	jQuery( "<fieldset/>" ).appendTo( "#form" ).append( valueObj( "<legend id='legend'>test</legend>" ) );
 	assert.t( "Append legend", "#legend", [ "legend" ] );
 
-	$map = jQuery( "<map/>" ).append( valueObj( "<area id='map01' shape='rect' coords='50,50,150,150' href='http://www.jquery.com/' alt='jQuery'>" ) );
+	$map = jQuery( "<map/>" ).append( valueObj( "<area id='map01' shape='rect' coords='50,50,150,150' href='https://www.jquery.com/' alt='jQuery'>" ) );
 
 	assert.equal( $map[ 0 ].childNodes.length, 1, "The area was inserted." );
 	assert.equal( $map[ 0 ].firstChild.nodeName.toLowerCase(), "area", "The area was inserted." );
@@ -1474,7 +1474,7 @@ QUnit.test( "clone()", function( assert ) {
 	div.remove();
 
 	// Test both html() and clone() for <embed> and <object> types
-	div = jQuery( "<div/>" ).html( "<embed height='355' width='425' src='http://www.youtube.com/v/3KANI2dpXLw&amp;hl=en'></embed>" );
+	div = jQuery( "<div/>" ).html( "<embed height='355' width='425' src='https://www.youtube.com/v/3KANI2dpXLw&amp;hl=en'></embed>" );
 
 	clone = div.clone( true );
 	assert.equal( clone.length, 1, "One element cloned" );
@@ -1484,7 +1484,7 @@ QUnit.test( "clone()", function( assert ) {
 	// this is technically an invalid object, but because of the special
 	// classid instantiation it is the only kind that IE has trouble with,
 	// so let's test with it too.
-	div = jQuery( "<div/>" ).html( "<object height='355' width='425' classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000'>  <param name='movie' value='http://www.youtube.com/v/3KANI2dpXLw&amp;hl=en'>  <param name='wmode' value='transparent'> </object>" );
+	div = jQuery( "<div/>" ).html( "<object height='355' width='425' classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000'>  <param name='movie' value='https://www.youtube.com/v/3KANI2dpXLw&amp;hl=en'>  <param name='wmode' value='transparent'> </object>" );
 
 	clone = div.clone( true );
 	assert.equal( clone.length, 1, "One element cloned" );
@@ -1511,7 +1511,7 @@ QUnit.test( "clone()", function( assert ) {
 	} )();
 
 	// and here's a valid one.
-	div = jQuery( "<div/>" ).html( "<object height='355' width='425' type='application/x-shockwave-flash' data='http://www.youtube.com/v/3KANI2dpXLw&amp;hl=en'>  <param name='movie' value='http://www.youtube.com/v/3KANI2dpXLw&amp;hl=en'>  <param name='wmode' value='transparent'> </object>" );
+	div = jQuery( "<div/>" ).html( "<object height='355' width='425' type='application/x-shockwave-flash' data='https://www.youtube.com/v/3KANI2dpXLw&amp;hl=en'>  <param name='movie' value='https://www.youtube.com/v/3KANI2dpXLw&amp;hl=en'>  <param name='wmode' value='transparent'> </object>" );
 
 	clone = div.clone( true );
 	assert.equal( clone.length, 1, "One element cloned" );
@@ -1943,7 +1943,7 @@ QUnit.test( "remove() with filters", function( assert ) {
 	div.children().remove( "span:nth-child(2n)" );
 	assert.equal( div.text(), "13", "relative selector in remove" );
 
-	if ( jQuery.find.compile ) {
+	if ( QUnit.jQuerySelectorsPos ) {
 		div = jQuery( markup );
 		div.children().remove( "span:first" );
 		assert.equal( div.text(), "234", "positional selector in remove" );
@@ -1951,8 +1951,8 @@ QUnit.test( "remove() with filters", function( assert ) {
 		div.children().remove( "span:last" );
 		assert.equal( div.text(), "123", "positional selector in remove" );
 	} else {
-		assert.ok( "skip", "Positional selectors not supported in selector-native" );
-		assert.ok( "skip", "Positional selectors not supported in selector-native" );
+		assert.ok( "skip", "Positional selectors are not supported" );
+		assert.ok( "skip", "Positional selectors are not supported" );
 	}
 
 	// using contents will get comments regular, text, and comment nodes
@@ -2040,7 +2040,7 @@ QUnit.test( "detach() with filters", function( assert ) {
 	div.children().detach( "span:nth-child(2n)" );
 	assert.equal( div.text(), "13", "relative selector in detach" );
 
-	if ( jQuery.find.compile ) {
+	if ( QUnit.jQuerySelectorsPos ) {
 		div = jQuery( markup );
 		div.children().detach( "span:first" );
 		assert.equal( div.text(), "234", "positional selector in detach" );
@@ -2048,8 +2048,8 @@ QUnit.test( "detach() with filters", function( assert ) {
 		div.children().detach( "span:last" );
 		assert.equal( div.text(), "123", "positional selector in detach" );
 	} else {
-		assert.ok( "skip", "positional selectors not supported in selector-native" );
-		assert.ok( "skip", "positional selectors not supported in selector-native" );
+		assert.ok( "skip", "Positional selectors are not supported" );
+		assert.ok( "skip", "Positional selectors are not supported" );
 	}
 
 	// using contents will get comments regular, text, and comment nodes
@@ -2274,6 +2274,27 @@ testIframe(
 	}
 );
 
+testIframe(
+	"domManip executes external scripts in iframes in the iframes' context",
+	"manipulation/scripts-context.html",
+	function( assert, framejQuery, frameWindow, frameDocument ) {
+		assert.expect( 2 );
+
+		Globals.register( "finishTest" );
+
+		return new Promise( function( resolve ) {
+			window.finishTest = resolve;
+			jQuery( frameDocument.body ).append(
+				"<script src='" + url( "manipulation/set-global-scripttest.js" ) + "'></script>" );
+			assert.ok( !window.scriptTest, "script executed in iframe context" );
+			assert.ok( frameWindow.scriptTest, "script executed in iframe context" );
+		} );
+	},
+
+	// The AJAX module is needed for jQuery._evalUrl.
+	QUnit[ jQuery.ajax ? "test" : "skip" ]
+);
+
 QUnit.test( "jQuery.clone - no exceptions for object elements #9587", function( assert ) {
 
 	assert.expect( 1 );
@@ -2400,7 +2421,6 @@ QUnit.test( "html() - script exceptions bubble (#11743)", function( assert ) {
 			assert.ok( true, "Exception ignored" );
 		} else {
 			assert.ok( true, "No jQuery.ajax" );
-			assert.ok( true, "No jQuery.ajax" );
 		}
 	};
 
@@ -2490,7 +2510,7 @@ QUnit.test( "script evaluation (#11795)", function( assert ) {
 	}
 } );
 
-QUnit.test( "jQuery._evalUrl (#12838)", function( assert ) {
+QUnit[ jQuery.ajax ? "test" : "skip" ]( "jQuery._evalUrl (#12838)", function( assert ) {
 
 	assert.expect( 5 );
 
@@ -2788,7 +2808,8 @@ QUnit.test( "Make sure tags with single-character names are found (gh-4124)", fu
 	assert.strictEqual( htmlOut, htmlIn );
 } );
 
-QUnit.test( "Insert script with data-URI (gh-1887)", function( assert ) {
+// The AJAX module is needed for jQuery._evalUrl.
+QUnit[ jQuery.ajax ? "test" : "skip" ]( "Insert script with data-URI (gh-1887)", function( assert ) {
 	assert.expect( 1 );
 
 	Globals.register( "testFoo" );
@@ -2851,7 +2872,7 @@ testIframe(
 
 	// Support: Edge <=18+
 	// Edge doesn't support nonce in non-inline scripts.
-	// See https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/13246371/
+	// See https://web.archive.org/web/20171203124125/https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/13246371/
 	QUnit[ /\bedge\//i.test( navigator.userAgent ) ? "skip" : "test" ]
 );
 
@@ -2869,10 +2890,11 @@ testIframe(
 		} );
 	},
 
+	// The AJAX module is needed for jQuery._evalUrl.
 	// Support: Edge <=18+
 	// Edge doesn't support nonce in non-inline scripts.
-	// See https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/13246371/
-	QUnit[ /\bedge\//i.test( navigator.userAgent ) ? "skip" : "test" ]
+	// See https://web.archive.org/web/20171203124125/https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/13246371/
+	QUnit[ jQuery.ajax && !/\bedge\//i.test( navigator.userAgent ) ? "test" : "skip" ]
 );
 
 testIframe(
@@ -2891,6 +2913,6 @@ testIframe(
 
 	// Support: Edge <=18+
 	// Edge doesn't support nonce in non-inline scripts.
-	// See https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/13246371/
+	// See https://web.archive.org/web/20171203124125/https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/13246371/
 	QUnit[ /\bedge\//i.test( navigator.userAgent ) ? "skip" : "test" ]
 );

@@ -66,7 +66,7 @@ QUnit.test( "jQuery()", function( assert ) {
 	assert.equal( jQuery( "" ).length, 0, "jQuery('') === jQuery([])" );
 	assert.deepEqual( jQuery( obj ).get(), obj.get(), "jQuery(jQueryObj) == jQueryObj" );
 
-	// Invalid #id goes to Sizzle which will throw an error (gh-1682)
+	// Invalid #id will throw an error (gh-1682)
 	try {
 		jQuery( "#" );
 	} catch ( e ) {
@@ -153,7 +153,7 @@ QUnit.test( "jQuery()", function( assert ) {
 		"Empty attributes object is not interpreted as a document (trac-8950)" );
 } );
 
-QUnit[ jQuery.find.compile ? "test" : "skip" ]( "jQuery(selector, context)", function( assert ) {
+QUnit[ QUnit.jQuerySelectors ? "test" : "skip" ]( "jQuery(selector, context)", function( assert ) {
 	assert.expect( 3 );
 	assert.deepEqual( jQuery( "div p", "#qunit-fixture" ).get(), q( "sndp", "en", "sap" ), "Basic selector with string as context" );
 	assert.deepEqual( jQuery( "div p", q( "qunit-fixture" )[ 0 ] ).get(), q( "sndp", "en", "sap" ), "Basic selector with element as context" );
@@ -197,6 +197,19 @@ QUnit.test( "globalEval execution after script injection (#7862)", function( ass
 	assert.ok( window.strictEvalTest - now < 500, "Code executed synchronously" );
 } );
 
+testIframe(
+	"globalEval with custom document context",
+	"core/globaleval-context.html",
+	function( assert, framejQuery, frameWindow, frameDocument ) {
+		assert.expect( 2 );
+
+		jQuery.globalEval( "window.scriptTest = true;", {}, frameDocument );
+		assert.ok( !window.scriptTest, "script executed in iframe context" );
+		assert.ok( frameWindow.scriptTest, "script executed in iframe context" );
+	}
+);
+
+
 QUnit.test( "noConflict", function( assert ) {
 	assert.expect( 7 );
 
@@ -214,28 +227,6 @@ QUnit.test( "noConflict", function( assert ) {
 	assert.ok( $$().pushStack( [] ), "Make sure that jQuery still works." );
 
 	window[ "jQuery" ] = jQuery = $$;
-} );
-
-QUnit.test( "trim", function( assert ) {
-	assert.expect( 13 );
-
-	var nbsp = String.fromCharCode( 160 );
-
-	assert.equal( jQuery.trim( "hello  " ), "hello", "trailing space" );
-	assert.equal( jQuery.trim( "  hello" ), "hello", "leading space" );
-	assert.equal( jQuery.trim( "  hello   " ), "hello", "space on both sides" );
-	assert.equal( jQuery.trim( "  " + nbsp + "hello  " + nbsp + " " ), "hello", "&nbsp;" );
-
-	assert.equal( jQuery.trim(), "", "Nothing in." );
-	assert.equal( jQuery.trim( undefined ), "", "Undefined" );
-	assert.equal( jQuery.trim( null ), "", "Null" );
-	assert.equal( jQuery.trim( 5 ), "5", "Number" );
-	assert.equal( jQuery.trim( false ), "false", "Boolean" );
-
-	assert.equal( jQuery.trim( " " ), "", "space should be trimmed" );
-	assert.equal( jQuery.trim( "ipad\xA0" ), "ipad", "nbsp should be trimmed" );
-	assert.equal( jQuery.trim( "\uFEFF" ), "", "zwsp should be trimmed" );
-	assert.equal( jQuery.trim( "\uFEFF \xA0! | \uFEFF" ), "! |", "leading/trailing should be trimmed" );
 } );
 
 QUnit.test( "isPlainObject", function( assert ) {
@@ -484,7 +475,7 @@ QUnit.test( "jQuery('html')", function( assert ) {
 
 	//equal( jQuery( "element[attribute=<div></div>]" ).length, 0,
 	//	"When html is within brackets, do not recognize as html." );
-	if ( jQuery.find.compile ) {
+	if ( QUnit.jQuerySelectors ) {
 		assert.equal( jQuery( "element:not(<div></div>)" ).length, 0,
 			"When html is within parens, do not recognize as html." );
 	} else {
@@ -670,6 +661,18 @@ QUnit.test( "first()/last()", function( assert ) {
 	assert.deepEqual( $none.last().get(), [], "last() none" );
 } );
 
+QUnit.test( "even()/odd()", function( assert ) {
+	assert.expect( 4 );
+
+	var $links = jQuery( "#ap a" ), $none = jQuery( "asdf" );
+
+	assert.deepEqual( $links.even().get(), q( "google", "anchor1" ), "even()" );
+	assert.deepEqual( $links.odd().get(), q( "groups", "mark" ), "odd()" );
+
+	assert.deepEqual( $none.even().get(), [], "even() none" );
+	assert.deepEqual( $none.odd().get(), [], "odd() none" );
+} );
+
 QUnit.test( "map()", function( assert ) {
 	assert.expect( 2 );
 
@@ -691,7 +694,7 @@ QUnit.test( "map()", function( assert ) {
 } );
 
 QUnit.test( "jQuery.map", function( assert ) {
-	assert.expect( 25 );
+	assert.expect( 28 );
 
 	var i, label, result, callback;
 
@@ -791,6 +794,23 @@ QUnit.test( "jQuery.map", function( assert ) {
 		return k % 2 ? k : [ k, k, k ];
 	} );
 	assert.equal( result.join( "" ), "00012223", "Array results flattened (#2616)" );
+
+	result = jQuery.map( [ [ [ 1, 2 ], 3 ], 4 ], function( v, k ) {
+		return v;
+	} );
+	assert.equal( result.length, 3, "Array flatten only one level down" );
+	assert.ok( Array.isArray( result[ 0 ] ), "Array flatten only one level down" );
+
+	// Support: IE 11+, Edge 18+
+	// Skip the test in browsers without Array#flat.
+	if ( Array.prototype.flat ) {
+		result = jQuery.map( Array( 300000 ), function( v, k ) {
+			return k;
+		} );
+		assert.equal( result.length, 300000, "Able to map 300000 records without any problems (#4320)" );
+	} else {
+		assert.ok( "skip", "Array#flat doesn't supported on all browsers" );
+	}
 } );
 
 QUnit.test( "jQuery.merge()", function( assert ) {

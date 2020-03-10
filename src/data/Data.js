@@ -1,11 +1,7 @@
-define( [
-	"../core",
-	"../core/camelCase",
-	"../var/rnothtmlwhite",
-	"./var/acceptData"
-], function( jQuery, camelCase, rnothtmlwhite, acceptData ) {
-
-"use strict";
+import jQuery from "../core.js";
+import camelCase from "../core/camelCase.js";
+import rnothtmlwhite from "../var/rnothtmlwhite.js";
+import acceptData from "./var/acceptData.js";
 
 function Data() {
 	this.expando = jQuery.expando + Data.uid++;
@@ -22,7 +18,7 @@ Data.prototype = {
 
 		// If not, create one
 		if ( !value ) {
-			value = {};
+			value = Object.create( null );
 
 			// We can accept data for non-element nodes in modern browsers,
 			// but we should not, see #8335.
@@ -158,5 +154,4 @@ Data.prototype = {
 	}
 };
 
-return Data;
-} );
+export default Data;

@@ -4,14 +4,14 @@ if ( jQuery.ajax ) {
 QUnit.test( "ajax", function( assert ) {
 	assert.expect( 4 );
 
-	var done = jQuery.map( new Array( 3 ), function() { return assert.async(); } );
+	var done = assert.async( 3 );
 
 	jQuery.ajax( {
 		type: "GET",
 		url: url( "mock.php?action=name&name=foo" ),
 		success: function( msg ) {
 			assert.strictEqual( msg, "bar", "Check for GET" );
-			done.pop()();
+			done();
 		}
 	} );
 
@@ -21,14 +21,14 @@ QUnit.test( "ajax", function( assert ) {
 		data: "name=peter",
 		success: function( msg ) {
 			assert.strictEqual( msg, "pan", "Check for POST" );
-			done.pop()();
+			done();
 		}
 	} );
 
 	jQuery( "#first" ).load( url( "name.html" ), function() {
 		assert.ok( /^ERROR/.test( jQuery( "#first" ).text() ),
 			"Check if content was injected into the DOM" );
-		done.pop()();
+		done();
 	} );
 } );
 }
@@ -76,12 +76,11 @@ QUnit.test( "show/hide", function( assert ) {
 }
 
 QUnit.test( "core", function( assert ) {
-	assert.expect( 18 );
+	assert.expect( 17 );
 
 	var elem = jQuery( "<div></div><span></span>" );
 
 	assert.strictEqual( elem.length, 2, "Correct number of elements" );
-	assert.strictEqual( jQuery.trim( "  hello   " ), "hello", "jQuery.trim" );
 
 	assert.ok( jQuery.isPlainObject( { "a": 2 } ), "jQuery.isPlainObject(object)" );
 	assert.ok( !jQuery.isPlainObject( "foo" ), "jQuery.isPlainObject(String)" );

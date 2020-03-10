@@ -1,6 +1,6 @@
-module.exports = function( grunt ) {
-	"use strict";
+"use strict";
 
+module.exports = function( grunt ) {
 	function readOptionalJSON( filepath ) {
 		var stripJSONComments = require( "strip-json-comments" ),
 			data = {};
@@ -14,7 +14,8 @@ module.exports = function( grunt ) {
 
 	var fs = require( "fs" ),
 		gzip = require( "gzip-js" ),
-		isTravis = process.env.TRAVIS;
+		isTravis = process.env.TRAVIS,
+		travisBrowsers = process.env.BROWSERS && process.env.BROWSERS.split( "," );
 
 	if ( !grunt.option( "filename" ) ) {
 		grunt.option( "filename", "jquery.js" );
@@ -40,7 +41,7 @@ module.exports = function( grunt ) {
 				retainLines: true,
 				plugins: [ "@babel/transform-for-of" ]
 			},
-			nodeSmokeTests: {
+			tests: {
 				files: {
 					"test/data/core/jquery-iterability-transpiled.js":
 						"test/data/core/jquery-iterability-transpiled-es6.js"
@@ -57,7 +58,7 @@ module.exports = function( grunt ) {
 
 				// Exclude specified modules if the module matching the key is removed
 				removeWith: {
-					ajax: [ "manipulation/_evalUrl", "event/ajax" ],
+					ajax: [ "manipulation/_evalUrl", "deprecated/ajax-event-alias" ],
 					callbacks: [ "deferred" ],
 					css: [ "effects", "dimensions", "offset" ],
 					"css/showHide": [ "effects" ],
@@ -65,29 +66,7 @@ module.exports = function( grunt ) {
 						remove: [ "ajax", "effects", "queue", "core/ready" ],
 						include: [ "core/ready-no-deferred" ]
 					},
-					sizzle: [ "css/hiddenVisibleSelectors", "effects/animatedSelector" ]
-				}
-			}
-		},
-		npmcopy: {
-			all: {
-				options: {
-					destPrefix: "external"
-				},
-				files: {
-					"sizzle/dist": "sizzle/dist",
-					"sizzle/LICENSE.txt": "sizzle/LICENSE.txt",
-
-					"npo/npo.js": "native-promise-only/npo.js",
-
-					"qunit/qunit.js": "qunit/qunit/qunit.js",
-					"qunit/qunit.css": "qunit/qunit/qunit.css",
-					"qunit/LICENSE.txt": "qunit/LICENSE.txt",
-
-					"requirejs/require.js": "requirejs/require.js",
-
-					"sinon/sinon.js": "sinon/pkg/sinon.js",
-					"sinon/LICENSE.txt": "sinon/LICENSE"
+					event: [ "deprecated/ajax-event-alias", "deprecated/event" ]
 				}
 			}
 		},
@@ -106,7 +85,7 @@ module.exports = function( grunt ) {
 			// We have to explicitly declare "src" property otherwise "newer"
 			// task wouldn't work properly :/
 			dist: {
-				src: "dist/jquery.js"
+				src: [ "dist/jquery.js", "dist/jquery.min.js" ]
 			},
 			dev: {
 				src: [ "src/**/*.js", "Gruntfile.js", "test/**/*.js", "build/**/*.js" ]
@@ -163,48 +142,48 @@ module.exports = function( grunt ) {
 						]
 					}
 				],
+				client: {
+					qunit: {
+
+						// We're running `QUnit.start()` ourselves via `loadTests()`
+						// in test/jquery.js
+						autostart: false
+					}
+				},
 				files: [
 					"test/data/jquery-1.9.1.js",
-					"external/sinon/sinon.js",
-					"external/npo/npo.js",
-					"external/requirejs/require.js",
+					"node_modules/sinon/pkg/sinon.js",
+					"node_modules/native-promise-only/lib/npo.src.js",
+					"node_modules/requirejs/require.js",
 					"test/data/testinit.js",
 
 					"test/jquery.js",
 
-					// Replacement for testinit.js#loadTests()
-					"test/data/testrunner.js",
-					"test/unit/basic.js",
-					"test/unit/core.js",
-					"test/unit/callbacks.js",
-					"test/unit/deferred.js",
-					"test/unit/deprecated.js",
-					"test/unit/support.js",
-					"test/unit/data.js",
-					"test/unit/queue.js",
-					"test/unit/attributes.js",
-					"test/unit/event.js",
-					"test/unit/selector.js",
-					"test/unit/traversing.js",
-					"test/unit/manipulation.js",
-					"test/unit/wrap.js",
-					"test/unit/css.js",
-					"test/unit/serialize.js",
-					"test/unit/ajax.js",
-					"test/unit/effects.js",
-					"test/unit/offset.js",
-					"test/unit/dimensions.js",
-					"test/unit/animation.js",
-					"test/unit/tween.js",
-					"test/unit/ready.js",
-
-					{ pattern: "dist/jquery.*", included: false, served: true },
-					{ pattern: "src/**", included: false, served: true },
-					{ pattern: "external/**", included: false, served: true },
+					{
+						pattern: "dist/jquery.*",
+						included: false,
+						served: true,
+						nocache: true
+					},
+					{
+						pattern: "src/**",
+						type: "module",
+						included: false,
+						served: true,
+						nocache: true
+					},
+					{
+						pattern: "amd/**",
+						included: false,
+						served: true,
+						nocache: true
+					},
+					{ pattern: "node_modules/**", included: false, served: true },
 					{
 						pattern: "test/**/*.@(js|css|jpg|html|xml|svg)",
 						included: false,
-						served: true
+						served: true,
+						nocache: true
 					}
 				],
 				reporters: [ "dots" ],
@@ -214,9 +193,37 @@ module.exports = function( grunt ) {
 				singleRun: true
 			},
 			main: {
+				browsers: isTravis && travisBrowsers || [ "ChromeHeadless", "FirefoxHeadless" ]
+			},
+			esmodules: {
+				browsers: isTravis && travisBrowsers || [ "ChromeHeadless" ],
+				options: {
+					client: {
+						qunit: {
 
-				// The Chrome sandbox doesn't work on Travis.
-				browsers: [ isTravis ? "ChromeHeadlessNoSandbox" : "ChromeHeadless" ]
+							// We're running `QUnit.start()` ourselves via `loadTests()`
+							// in test/jquery.js
+							autostart: false,
+
+							esmodules: true
+						}
+					}
+				}
+			},
+			amd: {
+				browsers: isTravis && travisBrowsers || [ "ChromeHeadless" ],
+				options: {
+					client: {
+						qunit: {
+
+							// We're running `QUnit.start()` ourselves via `loadTests()`
+							// in test/jquery.js
+							autostart: false,
+
+							amd: true
+						}
+					}
+				}
 			},
 
 			jsdom: {
@@ -229,13 +236,12 @@ module.exports = function( grunt ) {
 						// choosing a version etc. for jsdom.
 						"dist/jquery.js",
 
-						// Replacement for testinit.js#loadTests()
+						// A partial replacement for testinit.js#loadTests()
 						"test/data/testrunner.js",
 
 						// jsdom only runs basic tests
 						"test/unit/basic.js",
 
-						{ pattern: "external/**", included: false, served: true },
 						{
 							pattern: "test/**/*.@(js|css|jpg|html|xml|svg)",
 							included: false,
@@ -326,7 +332,13 @@ module.exports = function( grunt ) {
 		"karma:jsdom"
 	] );
 
+	grunt.registerTask( "test:prepare", [
+		"qunit_fixture",
+		"babel:tests"
+	] );
+
 	grunt.registerTask( "test", [
+		"test:prepare",
 		"test:fast",
 		"test:slow"
 	] );
@@ -344,10 +356,11 @@ module.exports = function( grunt ) {
 	grunt.registerTask( "default", [
 		"eslint:dev",
 		"build:*:*",
+		"amd",
 		"uglify",
 		"remove_map_comment",
 		"dist:*",
-		"qunit_fixture",
+		"test:prepare",
 		"eslint:dist",
 		"test:fast",
 		"compare_size"

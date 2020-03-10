@@ -1,14 +1,9 @@
-define( [
-	"../core",
-	"../core/stripAndCollapse",
-	"../core/nodeName",
+import jQuery from "../core.js";
+import isIE from "../var/isIE.js";
+import stripAndCollapse from "../core/stripAndCollapse.js";
+import nodeName from "../core/nodeName.js";
 
-	"../core/init"
-], function( jQuery, stripAndCollapse, nodeName ) {
-
-"use strict";
-
-var rreturn = /\r/g;
+import "../core/init.js";
 
 jQuery.fn.extend( {
 	val: function( value ) {
@@ -28,11 +23,6 @@ jQuery.fn.extend( {
 				}
 
 				ret = elem.value;
-
-				// Handle most common string cases
-				if ( typeof ret === "string" ) {
-					return ret.replace( rreturn, "" );
-				}
 
 				// Handle cases where value is null/undef or number
 				return ret == null ? "" : ret;
@@ -81,20 +71,6 @@ jQuery.fn.extend( {
 
 jQuery.extend( {
 	valHooks: {
-		option: {
-			get: function( elem ) {
-
-				var val = jQuery.find.attr( elem, "value" );
-				return val != null ?
-					val :
-
-					// Support: IE <=10 - 11+
-					// option.text throws exceptions (#14686, #14858)
-					// Strip and collapse whitespace
-					// https://html.spec.whatwg.org/#strip-and-collapse-whitespace
-					stripAndCollapse( jQuery.text( elem ) );
-			}
-		},
 		select: {
 			get: function( elem ) {
 				var value, option, i,
@@ -147,15 +123,11 @@ jQuery.extend( {
 				while ( i-- ) {
 					option = options[ i ];
 
-					/* eslint-disable no-cond-assign */
-
-					if ( option.selected =
-						jQuery.inArray( jQuery.valHooks.option.get( option ), values ) > -1
-					) {
+					if ( ( option.selected =
+						jQuery.inArray( jQuery( option ).val(), values ) > -1
+					) ) {
 						optionSet = true;
 					}
-
-					/* eslint-enable no-cond-assign */
 				}
 
 				// Force browsers to behave consistently when non-matching value is set
@@ -168,6 +140,23 @@ jQuery.extend( {
 	}
 } );
 
+if ( isIE ) {
+	jQuery.valHooks.option = {
+		get: function( elem ) {
+
+			var val = elem.getAttribute( "value" );
+			return val != null ?
+				val :
+
+				// Support: IE <=10 - 11+
+				// option.text throws exceptions (#14686, #14858)
+				// Strip and collapse whitespace
+				// https://html.spec.whatwg.org/#strip-and-collapse-whitespace
+				stripAndCollapse( jQuery.text( elem ) );
+		}
+	};
+}
+
 // Radios and checkboxes getter/setter
 jQuery.each( [ "radio", "checkbox" ], function() {
 	jQuery.valHooks[ this ] = {
@@ -177,6 +166,4 @@ jQuery.each( [ "radio", "checkbox" ], function() {
 			}
 		}
 	};
-} );
-
 } );

@@ -1,11 +1,10 @@
+"use strict";
+
 module.exports = ( grunt ) => {
-
-	"use strict";
-
 	const fs = require( "fs" );
 	const spawnTest = require( "./lib/spawn_test.js" );
 	const testsDir = "./test/node_smoke_tests/";
-	const nodeSmokeTests = [ "babel:nodeSmokeTests" ];
+	const nodeSmokeTests = [];
 
 	// Fire up all tests defined in test/node_smoke_tests/*.js in spawned sub-processes.
 	// All the files under test/node_smoke_tests/*.js are supposed to exit with 0 code
